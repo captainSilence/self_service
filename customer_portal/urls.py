@@ -2,6 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [ 
-    path('', views.getNewRequest, name='getData'),
-    path('add/', views.addNewRequest)
+    path('new-request', views.NewRequest, name='newrequest'),
+    path('new-request/<int:id>', views.NewRequestDetail),
 ]
