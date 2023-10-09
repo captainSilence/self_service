@@ -32,7 +32,12 @@ ALLOWED_HOSTS = ['*']
 DATABASE_ADDRESS = os.environ.get('DATABASE_ADDRESS')
 DATABASE_USER = os.environ.get('DATABASE_USER')
 DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
-
+# server1 = 'SQL-GOLDENGATE\GOLDENGATE'
+SQL_SERVER = '10.128.35.118'
+# database = 'network_automation'
+SQL_DATABASE = 'SVCustom'
+SQL_USERNAME = os.environ.get('SQL_USER')
+SQL_PASSWORD = os.environ.get('SQL_PASSWORD')
 
 # Application definition
 
