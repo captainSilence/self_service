@@ -66,6 +66,7 @@ class NewRequest(APIView):
                 f'Customer email: {email}{new_line}Customer address: {address}{new_line}'
             )
         else:
+            customerInfo = {}
             customerInfo['accountNumber'] = accountNumber
             customerInfo['customerName'] = 'Not found'
             customerInfo['status'] = 'Not found'
