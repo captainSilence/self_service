@@ -61,9 +61,9 @@ class NewRequest(APIView):
             subject = f'New Speed Upgrade Request From Customer {name}'
             text = (
                 f'From customer: {name}{new_line}Customer accnumber: {accountNumber}{new_line}'
-                f'Customer status: {customerStatus}{new_line}Customer type: {customerType}'
-                f'Customer current speed: {MRC}MB{new_line}Customer product offer: {productOffer}'
-                f'Customer email: {email}{new_line}Customer address: {address}{new_line}'
+                f'Customer status: {customerStatus}{new_line}Customer type: {customerType}{new_line}'
+                f'Customer current speed: {MRC}MB{new_line}Customer product offer: {productOffer}{new_line}'
+                f'Customer email: {email}{new_line}Customer address: {address}'
             )
         else:
             customerInfo = {}
