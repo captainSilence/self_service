@@ -13,6 +13,7 @@ from .models import NewSpeedRequest
 from .serializers import NewSpeedRequestSerializer
 from . import sendEmail
 import pyodbc
+import time
 
 # from Django.self_service.customer_portal import serializers
 
@@ -28,6 +29,20 @@ class NewRequest(APIView):
         serializer = NewSpeedRequestSerializer(allRequest, many=True)
         return Response(serializer.data)
 
+
+
+    def timer(func):
+        def wrapper(self, *args, **kwargs):
+            start_time = time.time()
+            result = func(self, *args, **kwargs)
+            end_time = time.time()
+            print(f'{func.__name__} took {end_time - start_time:.2f} seconds to execute.')
+            return result
+        return wrapper
+
+
+
+    @timer
     def post(self, request, format=None):
         data=request.data
         accountNumber = data['accountNumber']
@@ -47,7 +62,7 @@ class NewRequest(APIView):
 
        
         sendFrom = 'newspeedrequest@cableone.biz'
-        sendTo = 'bizhou.duan@cableone.biz'
+        sendTo = self.emailSendTo(customerType)
 
         new_line = '\n'
         subject = f'New Speed Upgrade Request From Customer {customerName}'
@@ -67,6 +82,12 @@ class NewRequest(APIView):
             newEmail.send()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+    def emailSendTo(self, customerType):
+        return 'bizhou.duan@cableone.biz'
+
 
 
     # init SQL connection
@@ -175,7 +196,7 @@ class NewRequest(APIView):
                 f' from  Singleview.dbo.customer_node_da_array as em'
                 f' where em.[DESCRIPTION] is not null'
                 f' and em.CUSTOMER_NODE_ID = {nodeID}'
-        )
+            )
         )
 
         if emails != []:
@@ -183,49 +204,14 @@ class NewRequest(APIView):
                 allEmails.append(line.EmailAddress)
             return set(allEmails)
         else: return None
-    
+
+
+
 class CustomerTypeNotFound(APIException):
     status_code = 404
     default_detail = 'Unable to locate the customer subtype.'
     default_code = 'service_unavailable'
 
-
-# @api_view(['GET','POST'])
-# @authentication_classes([BasicAuthentication])
-# @permission_classes([IsAuthenticated])
-# def NewRequest(request):
-    
-#     if request.method == 'GET':
-#         allRequest = NewSpeedRequest.objects.all()
-#         serializer = NewSpeedRequestSerializer(allRequest, many=True)
-#         return Response(serializer.data)
-
-#     elif request.method == 'POST':
-#         data=request.data
-#         sendFrom = 'newspeedrequest@cableone.biz'
-#         sendTo = 'bizhou.duan@cableone.biz'
-#         accountNumber = data['accountNumber']
-#         name = data['name']
-#         email = data['email']
-#         phoneNumber = data['phoneNumber']
-#         newSpeed = data['newSpeed']
-#         comment = data['comment']
-#         new_line = '\n'
-#         subject = f'New Speed Upgrade Request From Customer {name}'
-#         text = (
-#             f'From customer: {name}{new_line}Customer accnumber: {accountNumber}{new_line}'
-#             f'Customer email: {email}{new_line}Customer Phone#: {phoneNumber}{new_line}'
-#             f'Customer new desired speed: {newSpeed}MB{new_line}Comment from customer: {comment}'
-#         )
-
-#         serializer = NewSpeedRequestSerializer(data=data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             # create email object
-#             newEmail = sendEmail.SendEmail(sendFrom, sendTo, subject, text)
-#             newEmail.send()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class NewRequestDetail(APIView):
@@ -243,19 +229,4 @@ class NewRequestDetail(APIView):
         speedRequest = self.get_object(id)
         serializer = NewSpeedRequestSerializer(speedRequest)
         return Response(serializer.data)
-
-    
-
-# @api_view(['GET'])
-# @authentication_classes([BasicAuthentication])
-# @permission_classes([IsAuthenticated])
-# def NewRequestDetail(request, id):
-#     # data = {'accountNumber':123456, 'name': 'test', 'email':'test@cableone.biz', 'phoneNumber': '4806375524', 'newSpeed':'500', 'comment':'no comment'}
-#     try:
-#         speedRequest = NewSpeedRequest.objects.get(pk=id)
-#     except NewSpeedRequest.DoesNotExist:
-#         return Response(status=status.HTTP_404_NOT_FOUND)
-
-#     serializer = NewSpeedRequestSerializer(speedRequest)
-#     return Response(serializer.data)
 
