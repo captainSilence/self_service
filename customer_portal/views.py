@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
 from django.conf import settings
@@ -29,59 +30,36 @@ class NewRequest(APIView):
 
     def post(self, request, format=None):
         data=request.data
+        accountNumber = data['accountNumber']
+        contractName = data['contractName']
+        contractPhone = data['contractPhone']
+        contractEmail = data['contractEmail']
+        currentPlan = data['currentPlan']
+        newMRC = data['newMRC']
+        comment = data['comment']
+
+        customerInfo = self.getCustomerType(accountNumber)
+        if customerInfo != None:
+            customerName, customerType = customerInfo
+            data['customerName'], data['customerType'] = customerName, customerType
+        else:
+            raise CustomerTypeNotFound 
+
+       
         sendFrom = 'newspeedrequest@cableone.biz'
         sendTo = 'bizhou.duan@cableone.biz'
-        accountNumber = data['accountNumber']
 
-        customerInfo = self.get_customer_info(accountNumber)
-        if customerInfo != None:
-            customerInfo['accountNumber'] = accountNumber     
-            name = customerInfo['customerName']
-            customerStatus = customerInfo['status']
-            customerType = customerInfo['customerType']
-            MRC = customerInfo['MRC']
-            nodeID = customerInfo['nodeID']
-            productOffer = customerInfo['productOffer']
-            address = customerInfo['address']
-            emailList = self.get_all_email(nodeID)
-            if emailList != None:
-                email = ''
-                for item in emailList:
-                    email += item + ', '
-                email = email[:-2]
-            else: email = 'Not found'
-            customerInfo['email'] = email
-        # emailList = get_all_email()
-        # name = data['name']
-        # email = data['email']
-   
-        # newSpeed = data['newSpeed']
-        # comment = data['comment']
-            new_line = '\n'
-            subject = f'New Speed Upgrade Request From Customer {name}'
-            text = (
-                f'From customer: {name}{new_line}Customer accnumber: {accountNumber}{new_line}'
-                f'Customer status: {customerStatus}{new_line}Customer type: {customerType}{new_line}'
-                f'Customer current speed: {MRC}MB{new_line}Customer product offer: {productOffer}{new_line}'
-                f'Customer email: {email}{new_line}Customer address: {address}'
+        new_line = '\n'
+        subject = f'New Speed Upgrade Request From Customer {customerName}'
+        text = (
+            f'From customer: {customerName}{new_line}Customer accnumber: {accountNumber}{new_line}'
+            f'Contract Name: {contractName}{new_line}ContractPhone: {contractPhone}{new_line}'
+            f'Contract Email: {contractEmail}{new_line}CurrentPlan: {currentPlan}{new_line}'
+            f'New Requested Speed: {newMRC}MB{new_line}Customer comment: {comment}'
             )
-        else:
-            customerInfo = {}
-            customerInfo['accountNumber'] = accountNumber
-            customerInfo['customerName'] = 'Not found'
-            customerInfo['status'] = 'Not found'
-            customerInfo['customerType'] = 'Not found'
-            customerInfo['MRC'] = 0
-            customerInfo['nodeID'] = 0
-            customerInfo['productOffer'] = 'Not found'
-            customerInfo['address'] = 'Not found'
-            customerInfo['email'] = 'Not found'
 
-            new_line = '\n'
-            subject = f'New Speed Upgrade Request'
-            text = (f'Customer accnumber: {accountNumber}{new_line}')
 
-        serializer = NewSpeedRequestSerializer(data=customerInfo)
+        serializer = NewSpeedRequestSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             # create email object
@@ -105,6 +83,25 @@ class NewRequest(APIView):
         rows = cursor.fetchall()
         return rows
 
+
+
+    def getCustomerType(self, accountNumber):
+        c1_goldengateDB = self.pyodbc_db_connection(settings.SQL_SERVER, settings.SQL_DATABASE, settings.SQL_USERNAME, settings.SQL_PASSWORD)
+        subType = self.pyodbc_query(
+            c1_goldengateDB, 
+            (
+                f'select CustomerName, BusinessSubscriberType '
+                f'from SVCustom.dbo.CustomerSummary '
+                f'where SingleviewAccount = {accountNumber}'
+            )
+        )
+
+        if subType != []:
+            for line in subType:
+                customerType = line.BusinessSubscriberType.strip()
+                customerName = line.CustomerName.strip()
+            return customerName, customerType
+        else: return None
 
 
     def get_customer_info(self, accountNumber):
@@ -187,6 +184,11 @@ class NewRequest(APIView):
             return set(allEmails)
         else: return None
     
+class CustomerTypeNotFound(APIException):
+    status_code = 404
+    default_detail = 'Unable to locate the customer subtype.'
+    default_code = 'service_unavailable'
+
 
 # @api_view(['GET','POST'])
 # @authentication_classes([BasicAuthentication])
